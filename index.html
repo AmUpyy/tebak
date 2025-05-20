@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Tebak Angka GG EZ 🔢</title>
+  <style>
+    :root {
+      --primary: #00ffc8;
+      --background: #0b0b1a;
+      --text: #fff;
+      --glass: rgba(255, 255, 255, 0.07);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 0;
+      background: var(--background);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      color: var(--text);
+    }
+    .card {
+      background: var(--glass);
+      backdrop-filter: blur(12px);
+      border-radius: 20px;
+      padding: 40px 30px;
+      width: 90%;
+      max-width: 500px;
+      text-align: center;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.3);
+    }
+    h1 {
+      font-size: 2.1rem;
+      margin-bottom: 20px;
+      color: var(--primary);
+    }
+    input[type="number"] {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: none;
+      font-size: 18px;
+      text-align: center;
+      background: #222;
+      color: var(--text);
+      margin-bottom: 15px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 12px;
+      border: none;
+      font-size: 16px;
+      background: var(--primary);
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      margin-bottom: 10px;
+      transition: background 0.3s ease;
+    }
+    button:hover {
+      background: #00bfa5;
+    }
+    #result {
+      margin-top: 10px;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .success { color: #00e676; }
+    .timer {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #aaa;
+    }
+    .leaderboard {
+      text-align: left;
+      font-size: 14px;
+      margin-top: 15px;
+    }
+    canvas.confetti {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 9999;
+    }
+  </style>
+</head>
+<body>
+  <canvas class="confetti"></canvas>
+  <div class="card">
+    <h1>Tebak Angka GG EZ 🧠🎯</h1>
+    <p>Level: <span id="level">1</span> | Range: 1–<span id="maxRange">10</span></p>
+    <input type="number" id="tebakan" placeholder="Masukkan tebakan..." />
+    <button onclick="cekTebakan()">Tebak!</button>
+    <div id="result"></div>
+    <div class="timer">⏱️ Waktu: <span id="timer">0.00</span> detik</div>
+    <button onclick="resetGame()">🔄 Main Lagi</button>
+    <div class="leaderboard">
+      <h3>🏅 Leaderboard Waktu Tercepat</h3>
+      <ol id="scoreList"></ol>
+    </div>
+  </div>
+
+  <!-- Audio Sound -->
+  <audio id="sound-win" src="https://www.myinstants.com/media/sounds/gg-ez.mp3" preload="auto"></audio>
+  <audio id="sound-lose" src="https://www.myinstants.com/media/sounds/vine-boom.mp3" preload="auto"></audio>
+
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script>
+    let level = 1;
+    let maxRange = 10;
+    let angkaRahasia = Math.floor(Math.random() * maxRange) + 1;
+    let mulaiWaktu = null;
+    let timerInterval = null;
+
+    const input = document.getElementById("tebakan");
+    const hasil = document.getElementById("result");
+    const levelEl = document.getElementById("level");
+    const maxRangeEl = document.getElementById("maxRange");
+    const timerEl = document.getElementById("timer");
+    const soundWin = document.getElementById("sound-win");
+    const soundLose = document.getElementById("sound-lose");
+
+    function mulaiTimer() {
+      mulaiWaktu = performance.now();
+      timerInterval = setInterval(() => {
+        const now = performance.now();
+        const detik = ((now - mulaiWaktu) / 1000).toFixed(2);
+        timerEl.textContent = detik;
+      }, 50);
+    }
+
+    function stopTimer() {
+      clearInterval(timerInterval);
+    }
+
+    function cekTebakan() {
+      if (!mulaiWaktu) mulaiTimer();
+      const angka = parseInt(input.value);
+      hasil.classList.remove("success");
+
+      if (isNaN(angka) || angka < 1 || angka > maxRange) {
+        hasil.textContent = `⛔ Masukkan angka 1–${maxRange}!`;
+        soundLose.currentTime = 0;
+        soundLose.play();
+        return;
+      }
+
+      const selisih = Math.abs(angka - angkaRahasia);
+      if (angka === angkaRahasia) {
+        stopTimer();
+        hasil.textContent = `🎉 GG EZ! Lanjut ke level ${level + 1}`;
+        hasil.classList.add("success");
+        confetti();
+        soundWin.currentTime = 0;
+        soundWin.play();
+        simpanSkor(parseFloat(timerEl.textContent));
+        level++;
+        maxRange += 10;
+        nextLevel();
+      } else {
+        let hint = selisih <= 3 ? "🔥 Dekat banget!" : selisih <= 10 ? "🌡️ Lumayan dekat" : "🧊 Jauh banget!";
+        hasil.textContent = angka < angkaRahasia ? `🔽 Terlalu kecil. ${hint}` : `🔼 Terlalu besar. ${hint}`;
+        soundLose.currentTime = 0;
+        soundLose.play();
+      }
+
+      input.value = "";
+      input.focus();
+    }
+
+    function nextLevel() {
+      angkaRahasia = Math.floor(Math.random() * maxRange) + 1;
+      levelEl.textContent = level;
+      maxRangeEl.textContent = maxRange;
+      timerEl.textContent = "0.00";
+      mulaiWaktu = null;
+      clearInterval(timerInterval);
+    }
+
+    function resetGame() {
+      level = 1;
+      maxRange = 10;
+      angkaRahasia = Math.floor(Math.random() * maxRange) + 1;
+      timerEl.textContent = "0.00";
+      mulaiWaktu = null;
+      clearInterval(timerInterval);
+      hasil.textContent = "";
+      input.value = "";
+      levelEl.textContent = level;
+      maxRangeEl.textContent = maxRange;
+      tampilkanLeaderboard();
+      input.focus();
+    }
+
+    input.addEventListener("keyup", function (e) {
+      if (e.key === "Enter") cekTebakan();
+    });
+
+    function simpanSkor(waktu) {
+      let skorList = JSON.parse(localStorage.getItem("leaderTime")) || [];
+      skorList.push(waktu);
+      skorList.sort((a, b) => a - b);
+      skorList = skorList.slice(0, 5);
+      localStorage.setItem("leaderTime", JSON.stringify(skorList));
+      tampilkanLeaderboard();
+    }
+
+    function tampilkanLeaderboard() {
+      let skorList = JSON.parse(localStorage.getItem("leaderTime")) || [];
+      document.getElementById("scoreList").innerHTML = skorList.map((s, i) => `<li>#${i + 1}: ${s}s</li>`).join("");
+    }
+
+    resetGame();
+  </script>
+</body>
+</html>
